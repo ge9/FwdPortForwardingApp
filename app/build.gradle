@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "in.nitinja.portforwarder"
-        minSdkVersion 16
+        minSdkVersion 26
         targetSdkVersion 33
         versionCode 1
         versionName "0.0.1"

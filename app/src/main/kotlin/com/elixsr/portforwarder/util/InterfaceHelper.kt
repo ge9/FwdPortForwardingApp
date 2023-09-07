@@ -43,6 +43,7 @@ object InterfaceHelper {
                 }
             }
         }
+        interfaces.add("INADDR_ANY")
         return interfaces
     }
 

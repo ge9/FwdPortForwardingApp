@@ -20,5 +20,9 @@
         android:orderInCategory="101"
         android:title="@string/pref_help_link_text"
         app:showAsAction="never" />
-
+    <item
+        android:id="@+id/action_network"
+        android:orderInCategory="102"
+        android:title="@string/network_title"
+        app:showAsAction="never" />
 </menu>

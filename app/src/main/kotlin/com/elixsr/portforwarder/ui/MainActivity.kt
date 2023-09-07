@@ -42,6 +42,7 @@ import com.elixsr.portforwarder.forwarding.ForwardingService
 import com.elixsr.portforwarder.models.RuleModel
 import com.elixsr.portforwarder.ui.intro.MainIntro
 import com.elixsr.portforwarder.ui.preferences.HelpActivity
+import com.elixsr.portforwarder.ui.preferences.NetworkActivity
 import com.elixsr.portforwarder.ui.preferences.SettingsActivity
 import com.elixsr.portforwarder.ui.rules.NewRuleActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -177,6 +178,12 @@ class MainActivity : BaseActivity() {
                 val helpActivityIntent = Intent(this, HelpActivity::class.java)
                 startActivity(helpActivityIntent)
             }
+
+            R.id.action_network -> {
+            val networkActivityIntent = Intent(this, NetworkActivity::class.java)
+                startActivity(networkActivityIntent)
+        }
+
         }
         return super.onOptionsItemSelected(item)
     }

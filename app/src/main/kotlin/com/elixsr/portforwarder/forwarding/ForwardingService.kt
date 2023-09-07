@@ -49,6 +49,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
+
 /**
  * The [ForwardingService] class acts as a controller of all all forwarding.
  *
@@ -202,6 +203,10 @@ class ForwardingService : IntentService {
         var address: String?
         val inetSocketAddress: InetSocketAddress
         val en = NetworkInterface.getNetworkInterfaces()
+        if (interfaceName.equals("INADDR_ANY")) {
+            inetSocketAddress = InetSocketAddress("0.0.0.0", port)
+            return inetSocketAddress
+        }
         while (en.hasMoreElements()) {
             val intf = en.nextElement()
             Log.d(TAG, intf.displayName + " vs " + interfaceName)
@@ -303,6 +308,7 @@ class ForwardingService : IntentService {
         val notification = mBuilder.build()
         notification.flags = Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT or Notification.DEFAULT_LIGHTS
         notifManager.notify(NOTIFICATION_ID, notification)
+        startForeground(NOTIFICATION_ID, notification)
     }
 
     companion object {
