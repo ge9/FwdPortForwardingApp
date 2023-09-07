@@ -48,6 +48,7 @@ import com.elixsr.portforwarder.ui.rules.NewRuleActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 
+
 class MainActivity : BaseActivity() {
     private lateinit var ruleModels: MutableList<RuleModel>
     private lateinit var mRecyclerView: RecyclerView
@@ -124,6 +125,17 @@ class MainActivity : BaseActivity() {
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 forwardingServiceResponseReceiver,
                 mStatusIntentFilter)
+        val getPrefs = PreferenceManager
+                .getDefaultSharedPreferences(baseContext)
+
+        if (getPrefs.getBoolean("pref_start_on_app_start", false)) {
+
+            Snackbar.make(coordinatorLayout, R.string.snackbar_port_forwarding_started_text, Snackbar.LENGTH_LONG)
+                    .setAction("Stop", null).show()
+            fab.hide()
+            startService(forwardingServiceIntent)
+            Log.i(TAG, "Automatically starting service")
+        }
         Log.i(TAG, "Finished onCreate")
     }
 

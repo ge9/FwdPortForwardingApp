@@ -15,6 +15,9 @@
         <CheckBoxPreference
             android:key="@string/pref_start_on_boot"
             android:title="@string/pref_start_on_boot_text" />
+        <CheckBoxPreference
+            android:key="@string/pref_start_on_app_start"
+            android:title="@string/pref_start_on_app_start_text" />
     </PreferenceCategory>
     <PreferenceCategory
         android:key="pref_import_export_category"
