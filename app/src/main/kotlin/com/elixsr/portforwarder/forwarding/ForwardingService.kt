@@ -297,7 +297,7 @@ class ForwardingService : IntentService {
         stackBuilder.addNextIntent(resultIntent)
         val resultPendingIntent = stackBuilder.getPendingIntent(
                 0,
-                PendingIntent.FLAG_UPDATE_CURRENT
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val mBuilder = NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(R.drawable.ic_fwd_24dp)

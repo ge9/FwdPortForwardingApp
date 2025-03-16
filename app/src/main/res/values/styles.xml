@@ -12,6 +12,7 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="editRuleTextInputColour">#FFF</item>
         <item name="emptyState">@drawable/empty_state_sloth_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="DarkTheme.NoActionBar">
@@ -28,7 +29,7 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="editRuleTextInputColour">#000</item>
         <item name="emptyState">@drawable/empty_state_sloth</item>
-
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="AppTheme.NoActionBar">
@@ -53,7 +54,7 @@
         <item name="colorAccent">#FFFFFF</item>
         <item name="colorControlActivated">#FFFFFF</item>
         <item name="colorSwitchThumbNormal">#4B9AFF</item>
-        <item name="android:colorForeground">#10407F</item>
+        <item name="android:colorForeground">#FCFCFC</item>
     </style>
 
     <style name="TextInputTextHint">
