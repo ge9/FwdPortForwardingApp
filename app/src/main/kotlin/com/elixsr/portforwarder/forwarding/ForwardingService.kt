@@ -17,16 +17,18 @@
  */
 package com.elixsr.portforwarder.forwarding
 
-import android.annotation.SuppressLint
-import android.app.IntentService
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
+import android.os.IBinder
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.TaskStackBuilder
@@ -59,14 +61,14 @@ import java.util.concurrent.TimeUnit
  *
  * The class creates a new thread for each Forwarding rule.
  */
-class ForwardingService : IntentService {
+class ForwardingService : Service {
     private var runService = false
 
     //change the magic number
     private var executorService: ExecutorService
 
     //wake lock
-    private lateinit var wakeLock: WakeLock
+    //private lateinit var wakeLock: WakeLock
 
     /**
      * Default constructor for [ForwardingService].#
@@ -75,14 +77,14 @@ class ForwardingService : IntentService {
      * Creates a new instance of ForwardingService and initialises an [ExecutorService]
      * with a fixed thread pool of 30 threads.
      */
-    constructor() : super(TAG) {
+    constructor() : super() {
         executorService = Executors.newFixedThreadPool(30)
     }
 
-    constructor(executorService: ExecutorService) : super(TAG) {
+    constructor(executorService: ExecutorService) : super() {
         this.executorService = executorService
     }
-
+    override fun onBind(intent: Intent): IBinder? = null
     override fun onCreate() {
         super.onCreate()
 
@@ -90,11 +92,27 @@ class ForwardingService : IntentService {
         Sourced from: https://developer.android.com/intl/ja/training/scheduling/wakelock.html
          */
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                PORT_FORWARD_SERVICE_WAKE_LOCK_TAG)
-        wakeLock.acquire()
+//        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+//            PORT_FORWARD_SERVICE_WAKE_LOCK_TAG)
+//        wakeLock.acquire()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(TAG, "onStartCommand: called")
+        if (intent != null && intent.action == "ACTION_DISCONNECT") {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (executorService.isShutdown || executorService.isTerminated) {
+            executorService = Executors.newFixedThreadPool(30)
+        }
+        if (!runService) {
+            runService = true
+            executorService.submit { handleIntent(intent) }
+        }
+        Log.i(TAG, "Service started with START_STICKY")
+        return START_STICKY
+    }
     /**
      * Starts forwarding based on rules found in database.
      *
@@ -108,7 +126,7 @@ class ForwardingService : IntentService {
      * If an exception is thrown, the service immediately stops, and the #onDestroy method is
      * called.
      */
-    override fun onHandleIntent(intent: Intent?) {
+    private fun handleIntent(intent: Intent?) {
 
         // Gets data from the incoming Intent
 //        String dataString = intent.getDataString();
@@ -229,7 +247,7 @@ class ForwardingService : IntentService {
     override fun onTaskRemoved(rootIntent: Intent) {
         super.onTaskRemoved(rootIntent)
         Log.i(TAG, "onTaskRemoved: called")
-        onDestroy()
+        //onDestroy()
     }
 
     override fun onDestroy() {
@@ -258,7 +276,9 @@ class ForwardingService : IntentService {
                 .putExtra(PORT_FORWARD_SERVICE_STATE, ForwardingManager.instance.isEnabled)
         // Broadcasts the Intent to receivers in this app.
         LocalBroadcastManager.getInstance(this).sendBroadcast(localIntent)
-        wakeLock.release()
+//        if (wakeLock.isHeld) {
+//            wakeLock.release()
+//        }
         Log.i(TAG, "Ended the ForwardingService. Cleanup finished.")
     }
 
@@ -270,7 +290,7 @@ class ForwardingService : IntentService {
     /**
      * Construct a notification
      */
-    @SuppressLint("MissingPermission")
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private fun showForwardingEnabledNotification() {
         val notifManager = NotificationManagerCompat.from(this)
         val channelId = "persistent"
