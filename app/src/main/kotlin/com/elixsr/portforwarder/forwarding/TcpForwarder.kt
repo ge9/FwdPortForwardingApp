@@ -20,6 +20,7 @@ package com.elixsr.portforwarder.forwarding
 import android.util.Log
 import java.io.IOException
 import java.net.BindException
+import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.SocketException
 import java.nio.ByteBuffer
@@ -119,13 +120,19 @@ class TcpForwarder(from: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                 key: SelectionKey) {
             val pair = key.attachment() as RoutingPair
             pair.writeBuffer.flip()
-            pair.to!!.write(pair.writeBuffer)
-            if (pair.writeBuffer.remaining() > 0) {
-                pair.writeBuffer.compact()
-            } else {
-                key.interestOps(SelectionKey.OP_READ)
-                pair.writeBuffer.clear()
+            try{
+                pair.to!!.write(pair.writeBuffer)
+                if (pair.writeBuffer.remaining() > 0) {
+                    pair.writeBuffer.compact()
+                } else {
+                    key.interestOps(SelectionKey.OP_READ)
+                    pair.writeBuffer.clear()
+                }
+            }catch (e: IOException){
+                key.cancel()
+                Log.e(TAG, "TCP write failed in processWritable()", e)
             }
+
         }
 
         @Throws(IOException::class)
@@ -148,10 +155,15 @@ class TcpForwarder(from: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                 println("Connection closed: " + key.channel())
             } else {
                 readBuffer.flip()
-                pair.to!!.write(readBuffer)
-                if (readBuffer.remaining() > 0) {
-                    pair.writeBuffer.put(readBuffer)
-                    key.interestOps(SelectionKey.OP_WRITE)
+                try{
+                    pair.to!!.write(readBuffer)
+                    if (readBuffer.remaining() > 0) {
+                        pair.writeBuffer.put(readBuffer)
+                        key.interestOps(SelectionKey.OP_WRITE)
+                    }
+                }catch (e: IOException){
+                    key.cancel()
+                    Log.e(TAG, "TCP write failed in processReadable()", e)
                 }
             }
         }
@@ -161,9 +173,16 @@ class TcpForwarder(from: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                 key: SelectionKey) {
             val from = key.attachment() as SocketChannel
             val forwardToSocket = key.channel() as SocketChannel
-            forwardToSocket.finishConnect()
-            forwardToSocket.socket().tcpNoDelay = true
-            registerReads(key.selector(), from, forwardToSocket)
+            try{
+                forwardToSocket.finishConnect()
+                forwardToSocket.socket().tcpNoDelay = true
+                registerReads(key.selector(), from, forwardToSocket)
+            }catch (e: SocketException){
+                key.cancel()
+                from.close()
+                forwardToSocket.close()
+                Log.e(TAG, "TCP connection failed", e)
+            }
         }
 
         @Throws(IOException::class)

@@ -28,6 +28,9 @@ import java.nio.channels.DatagramChannel
 import java.nio.channels.SelectionKey
 import java.nio.channels.Selector
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Skeleton taken from: http://cs.ecs.baylor.edu/~donahoo/practical/JavaSockets2/code/UDPEchoServerSelector.java
@@ -69,7 +72,7 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                         // Client socket channel has pending data?
                         if (key.isReadable) {
                             // Log.i(TAG, "Have Something to READ");
-                            handleRead(key, readBuffer)
+                            handleRead(key, readBuffer, executor)
                         }
 
                         // Client socket channel is available for writing and
@@ -88,18 +91,18 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
         }
         return null
     }
-
+    internal class ClientInfo(val channel:DatagramChannel, var lastActive: Long){}
     internal class ClientRecord(var toAddress: SocketAddress) {
-        var writeBuffer: ByteBuffer = ByteBuffer.allocate(BUFFER_SIZE)
+        val clientMap = ConcurrentHashMap<SocketAddress, ClientInfo>()
+        val writeBuffers = ConcurrentHashMap<SocketAddress, ByteBuffer>()
     }
-
+    val executor: ExecutorService = Executors.newCachedThreadPool()
     companion object {
         private const val TAG = "UdpForwarder"
         private const val BUFFER_SIZE = 100000
 
         @Throws(IOException::class)
-        fun handleRead(key: SelectionKey, readBuffer: ByteBuffer) {
-
+        fun handleRead(key: SelectionKey, readBuffer: ByteBuffer, executor: ExecutorService) {
             // Log.i("UdpForwarder", "Handling Read");
             val channel = key.channel() as DatagramChannel
             val clientRecord = key.attachment() as ClientRecord
@@ -108,16 +111,47 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
             readBuffer.clear()
 
             // Receive the data
-            channel.receive(readBuffer)
-
+            val sourceAddress = channel.receive(readBuffer)
             // Get read to wrte, then send
             readBuffer.flip()
-            channel.send(readBuffer, clientRecord.toAddress)
-
+            var existing=true
+            val clInfo = clientRecord.clientMap.computeIfAbsent(sourceAddress)
+            {existing=false
+                ClientInfo(
+                DatagramChannel.open().apply {
+                configureBlocking(false)
+                connect(clientRecord.toAddress)},System.nanoTime()
+                )
+            }
+            clInfo.lastActive = System.nanoTime()
+            val outChannel = clInfo.channel
+            outChannel.write(readBuffer)
             // If there is anything remaining in the buffer
             if (readBuffer.remaining() > 0) {
-                clientRecord.writeBuffer.put(readBuffer)
+                clientRecord.writeBuffers.computeIfAbsent(sourceAddress){ByteBuffer.allocate(BUFFER_SIZE)}.put(readBuffer)
                 key.interestOps(SelectionKey.OP_WRITE)
+            }
+            if (existing) return
+            executor.submit {
+                try {
+                    val buffer = ByteBuffer.allocate(4096)
+                    while (true) {
+                        buffer.clear()
+                        val sourceAddr = outChannel.receive(buffer)
+                        if (sourceAddr != null) {
+                            buffer.flip()
+                            channel.send(buffer,sourceAddress)
+                            clInfo.lastActive = System.nanoTime()
+                        }
+                        if (System.nanoTime() - clInfo.lastActive > 60_000_000_000) break
+                    }
+                } catch (e: Exception) {//can catch port unreachable here
+                    e.printStackTrace()
+                } finally {//a garbage collection
+                    clientRecord.clientMap.remove(sourceAddress)
+                    clientRecord.writeBuffers.remove(sourceAddress)
+                    outChannel.close()
+                }
             }
 
 //        ClientRecord clientRecord = (ClientRecord) key.attachment();
@@ -134,13 +168,15 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
         fun handleWrite(key: SelectionKey) {
             val channel = key.channel() as DatagramChannel
             val clientRecord = key.attachment() as ClientRecord
-            clientRecord.writeBuffer.flip() // Prepare buffer for sending
-            channel.send(clientRecord.writeBuffer, clientRecord.toAddress)
-            if (clientRecord.writeBuffer.remaining() > 0) {
-                clientRecord.writeBuffer.compact()
-            } else {
-                key.interestOps(SelectionKey.OP_READ)
-                clientRecord.writeBuffer.clear()
+            clientRecord.writeBuffers.forEach { (toAddress, writeBuffer) ->
+                writeBuffer.flip() // Prepare buffer for sending
+                channel.send(writeBuffer, clientRecord.toAddress)
+                if (writeBuffer.remaining() > 0) {
+                    writeBuffer.compact()
+                } else {
+                    key.interestOps(SelectionKey.OP_READ)
+                    writeBuffer.clear()
+                }
             }
 
 //        if (bytesSent != 0) { // Buffer completely written?

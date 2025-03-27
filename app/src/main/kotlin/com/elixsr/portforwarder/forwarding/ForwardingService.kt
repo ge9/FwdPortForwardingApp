@@ -66,6 +66,7 @@ class ForwardingService : Service {
 
     //change the magic number
     private var executorService: ExecutorService
+    private var executorService0: ExecutorService
 
     //wake lock
     //private lateinit var wakeLock: WakeLock
@@ -79,10 +80,12 @@ class ForwardingService : Service {
      */
     constructor() : super() {
         executorService = Executors.newFixedThreadPool(30)
+        executorService0 = Executors.newSingleThreadExecutor()
     }
 
     constructor(executorService: ExecutorService) : super() {
         this.executorService = executorService
+        this.executorService0 = Executors.newSingleThreadExecutor()
     }
     override fun onBind(intent: Intent): IBinder? = null
     override fun onCreate() {
@@ -103,12 +106,9 @@ class ForwardingService : Service {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (executorService.isShutdown || executorService.isTerminated) {
-            executorService = Executors.newFixedThreadPool(30)
-        }
         if (!runService) {
             runService = true
-            executorService.submit { handleIntent(intent) }
+            executorService0.submit { handleIntent(intent) }
         }
         Log.i(TAG, "Service started with START_STICKY")
         return START_STICKY
@@ -126,6 +126,7 @@ class ForwardingService : Service {
      * If an exception is thrown, the service immediately stops, and the #onDestroy method is
      * called.
      */
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private fun handleIntent(intent: Intent?) {
 
         // Gets data from the incoming Intent
