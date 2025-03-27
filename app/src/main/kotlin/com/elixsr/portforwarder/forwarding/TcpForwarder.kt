@@ -20,6 +20,7 @@ package com.elixsr.portforwarder.forwarding
 import android.util.Log
 import java.io.IOException
 import java.net.BindException
+import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.SocketException
 import java.nio.ByteBuffer
@@ -161,9 +162,16 @@ class TcpForwarder(from: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                 key: SelectionKey) {
             val from = key.attachment() as SocketChannel
             val forwardToSocket = key.channel() as SocketChannel
-            forwardToSocket.finishConnect()
-            forwardToSocket.socket().tcpNoDelay = true
-            registerReads(key.selector(), from, forwardToSocket)
+            try{
+                forwardToSocket.finishConnect()
+                forwardToSocket.socket().tcpNoDelay = true
+                registerReads(key.selector(), from, forwardToSocket)
+            }catch (e: SocketException){
+                key.cancel()
+                from.close()
+                forwardToSocket.close()
+                Log.e(TAG, "TCP connection failed", e)
+            }
         }
 
         @Throws(IOException::class)
