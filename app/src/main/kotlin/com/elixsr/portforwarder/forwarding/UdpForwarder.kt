@@ -131,8 +131,8 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                 clientRecord.writeBuffers.computeIfAbsent(sourceAddress){ByteBuffer.allocate(BUFFER_SIZE)}.put(readBuffer)
                 key.interestOps(SelectionKey.OP_WRITE)
             }
-            if (existing) return
-            executor.submit {
+            if (existing) return//we already have an executor for it
+            executor.submit {//handle "reply" packets
                 try {
                     val buffer = ByteBuffer.allocate(4096)
                     while (true) {
@@ -147,7 +147,7 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
                     }
                 } catch (e: Exception) {//can catch port unreachable here
                     e.printStackTrace()
-                } finally {//a garbage collection
+                } finally {//an experimental garbage collection implementation (not well tested)
                     clientRecord.clientMap.remove(sourceAddress)
                     clientRecord.writeBuffers.remove(sourceAddress)
                     outChannel.close()
@@ -168,7 +168,7 @@ class UdpForwarder(form: InetSocketAddress, to: InetSocketAddress?, ruleName: St
         fun handleWrite(key: SelectionKey) {
             val channel = key.channel() as DatagramChannel
             val clientRecord = key.attachment() as ClientRecord
-            clientRecord.writeBuffers.forEach { (toAddress, writeBuffer) ->
+            clientRecord.writeBuffers.forEach { (toAddress, writeBuffer) ->//not well tested
                 writeBuffer.flip() // Prepare buffer for sending
                 channel.send(writeBuffer, clientRecord.toAddress)
                 if (writeBuffer.remaining() > 0) {

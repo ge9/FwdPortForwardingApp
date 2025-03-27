@@ -47,6 +47,7 @@ class RuleModel : Serializable {
 
     //TODO: create a class? - worth the effort?
     @JvmField
+    @Expose
     var fromInterfaceName: String? = null
 
     @JvmField
@@ -58,6 +59,7 @@ class RuleModel : Serializable {
     var target: InetSocketAddress? = null
 
     @JvmField
+    @Expose
     var isEnabled = true
 
     // Null constructor - for object building

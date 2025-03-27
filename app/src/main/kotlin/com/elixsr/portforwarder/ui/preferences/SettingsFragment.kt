@@ -210,13 +210,12 @@ class SettingsFragment : PreferenceFragment() {
                 writer.close()
 
                 // Everything good, lets send an intent
-                val intent = Intent(Intent.ACTION_SEND)
-                intent.type = "application/json"
-                intent.putExtra(Intent.EXTRA_SUBJECT, "Fwd Rule List")
-                intent.putExtra(Intent.EXTRA_TEXT, "Your fwd rules have been attached with the name '" + outputFile.name + "'.")
-                intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(activity.applicationContext, activity.applicationContext.packageName + ".util.provider", outputFile))
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                startActivity(Intent.createChooser(intent, getString(R.string.export_rules_action_title)))
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply{
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_TITLE, "fwd_rule_list.json")
+                }
+                startActivityForResult(intent, REQUEST_CODE_SAVE)
                 Log.i(TAG, "onDataChange: URI " + Uri.fromFile(outputFile).toString())
             } catch (e: IOException) {
                 Log.e(TAG, "onDataChange: error trying to create file to store exported data", e)
@@ -233,17 +232,35 @@ class SettingsFragment : PreferenceFragment() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_SAVE && resultCode == Activity.RESULT_OK) {
+            data?.data?.let { uri ->
+                saveToFile(uri)
+            }
+        }
         if (resultCode != Activity.RESULT_CANCELED && requestCode == RULE_LIST_CODE && data.data != null) {
             val importRulesActivityIntent = Intent(activity, ImportRulesActivity::class.java)
             importRulesActivityIntent.putExtra(ImportRulesActivity.IMPORTED_RULE_DATA, data.data.toString())
             startActivity(importRulesActivityIntent)
         }
     }
-
+    private fun saveToFile(uri: Uri) {
+        val ruleList = ruleListToJsonString()
+        try {
+            activity.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(ruleList.toByteArray())
+            }
+            Toast.makeText(activity, "Saved successfully!", Toast.LENGTH_LONG).show()
+        } catch (e: IOException) {
+            Log.e(TAG, "Error writing to file", e)
+            Toast.makeText(activity, "Error saving file.", Toast.LENGTH_SHORT).show()
+        }
+    }
     companion object {
         private const val TAG = "SettingsFragment"
         private const val CLEAR_RULES_COMPLETE_MESSAGE = "All rules have been removed"
         const val DARK_MODE_BROADCAST = "com.elixsr.DARK_MODE_TOGGLE"
         private const val RULE_LIST_CODE = 1
+        private const val REQUEST_CODE_SAVE = 1001 //an arbitrary number
     }
 }

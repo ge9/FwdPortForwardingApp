@@ -66,7 +66,7 @@ class ForwardingService : Service {
 
     //change the magic number
     private var executorService: ExecutorService
-    private var executorService0: ExecutorService
+    private var executorService0: ExecutorService//only for handleIntent(); is this implementation OK?
 
     //wake lock
     //private lateinit var wakeLock: WakeLock

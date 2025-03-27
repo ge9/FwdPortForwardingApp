@@ -75,19 +75,20 @@ class ImportRulesActivity : BaseActivity() {
             finish()
             return
         }
-
+        importRules()
+        return
         // TODO: Expose as localised strings
-        var importText = "You are about to import <b>" + ruleModels.size + "</b> rule, configure the interface and target address below"
-        if (ruleModels.size > 1) {
-            importText = "You are about to import <b>" + ruleModels.size + "</b> rules, configure the interface and target address below"
-        }
-        importRulesText.text = Html.fromHtml(importText)
-        importRulesButton.text = "IMPORT " + ruleModels.size + " RULES"
-        importRulesButton.setOnClickListener { importRules() }
-        helpButton.setOnClickListener { v: View ->
-            val mainActivityIntent = Intent(v.context, SupportSiteActivity::class.java)
-            startActivity(mainActivityIntent)
-        }
+//        var importText = "You are about to import <b>" + ruleModels.size + "</b> rule, configure the interface and target address below"
+//        if (ruleModels.size > 1) {
+//            importText = "You are about to import <b>" + ruleModels.size + "</b> rules, configure the interface and target address below"
+//        }
+//        importRulesText.text = Html.fromHtml(importText)
+//        importRulesButton.text = "IMPORT " + ruleModels.size + " RULES"
+//        importRulesButton.setOnClickListener { importRules() }
+//        helpButton.setOnClickListener { v: View ->
+//            val mainActivityIntent = Intent(v.context, SupportSiteActivity::class.java)
+//            startActivity(mainActivityIntent)
+//        }
     }
 
     fun parseRules(data: Uri) {
@@ -129,25 +130,25 @@ class ImportRulesActivity : BaseActivity() {
         val targetIpAddressText = findViewById<TextInputEditText>(R.id.new_rule_target_ip_address)
 
         // Validate the input, and show error message if wrong
-        try {
-            if (RuleModelValidator.validateRuleTargetIpAddress(targetIpAddressText.text.toString())) {
-                targetIpAddress = targetIpAddressText.text.toString()
-            }
-        } catch (e: RuleValidationException) {
-            targetIpAddressText.error = e.message
-            validationError = true
-        }
-        if (validationError) {
-            return
-        }
+//        try {
+//            if (RuleModelValidator.validateRuleTargetIpAddress(targetIpAddressText.text.toString())) {
+//                targetIpAddress = targetIpAddressText.text.toString()
+//            }
+//        } catch (e: RuleValidationException) {
+//            targetIpAddressText.error = e.message
+//            validationError = true
+//        }
+//        if (validationError) {
+//            return
+//        }
         for (ruleModel in ruleModels) {
 
             // Create an InetSocketAddress object using data
-            val target = InetSocketAddress(targetIpAddress, ruleModel.targetPort)
-            ruleModel.target = target
+            //val target = InetSocketAddress(targetIpAddress, ruleModel.targetPort)
+            //ruleModel.target = target
             val fromInterfaceSpinner = findViewById<Spinner>(R.id.from_interface_spinner)
-            val selectedFromInterface = fromInterfaceSpinner.selectedItem.toString()
-            ruleModel.fromInterfaceName = selectedFromInterface
+            //val selectedFromInterface = fromInterfaceSpinner.selectedItem.toString()
+            //ruleModel.fromInterfaceName = selectedFromInterface
             ruleDao.insertRule(ruleModel)
         }
         Toast.makeText(applicationContext, "Imported " + ruleModels.size + " rules.", Toast.LENGTH_LONG).show()
