@@ -33,6 +33,7 @@ import com.elixsr.portforwarder.db.RuleContract
 import com.elixsr.portforwarder.db.RuleDbHelper
 import com.elixsr.portforwarder.models.RuleModel
 import com.elixsr.portforwarder.ui.MainActivity
+import com.elixsr.portforwarder.util.InterfaceHelper.correctInterfaceNameAndAddr
 import com.elixsr.portforwarder.util.RuleHelper
 import com.elixsr.portforwarder.util.RuleHelper.cursorToRuleModel
 import com.elixsr.portforwarder.util.RuleHelper.getRuleProtocolFromModel
@@ -114,7 +115,7 @@ class EditRuleActivity : BaseRuleActivity() {
         //from interface spinner
         Log.i(TAG, "FROM SPINNER : $fromInterfaceSpinner")
         Log.i(TAG, "FROM INTERFACE : " + ruleModel.fromInterfaceName)
-        fromInterfaceSpinner.setSelection(fromSpinnerAdapter!!.getPosition(ruleModel.fromInterfaceName))
+        fromInterfaceSpinner.setSelection(fromSpinnerAdapter!!.getPosition(correctInterfaceNameAndAddr(ruleModel.fromInterfaceName!!)))
 
         // Protocol spinner
         protocolSpinner.setSelection(protocolAdapter!!.getPosition(getRuleProtocolFromModel(ruleModel)))

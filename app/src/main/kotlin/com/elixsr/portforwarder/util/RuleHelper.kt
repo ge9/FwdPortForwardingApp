@@ -39,7 +39,7 @@ object RuleHelper {
      *
      * This is a result of not having root permissions.
      */
-    const val MIN_PORT_VALUE = 1024
+    const val MIN_PORT_VALUE = 1
 
     /**
      * The minimum target port value.

@@ -235,7 +235,7 @@ abstract class BaseRuleActivity : BaseActivity() {
         }
         val fromInterfaceSpinner = findViewById<Spinner>(R.id.from_interface_spinner)
         val selectedFromInterface = fromInterfaceSpinner.selectedItem.toString()
-        ruleModel.fromInterfaceName = selectedFromInterface
+        ruleModel.fromInterfaceName = selectedFromInterface.substringBefore(" ")
         return ruleModel
     }
 
