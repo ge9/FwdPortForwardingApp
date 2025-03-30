@@ -39,6 +39,7 @@ import com.elixsr.portforwarder.dao.RuleDao
 import com.elixsr.portforwarder.db.RuleDbHelper
 import com.elixsr.portforwarder.exceptions.ObjectNotFoundException
 import com.elixsr.portforwarder.ui.MainActivity
+import com.elixsr.portforwarder.util.InterfaceHelper.getAddrFromIntfCategIndex
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
@@ -222,26 +223,29 @@ class ForwardingService : Service {
         var address: String?
         val inetSocketAddress: InetSocketAddress
         val en = NetworkInterface.getNetworkInterfaces()
-        if (interfaceName.equals("INADDR_ANY")) {
+        if (interfaceName.equals("INADDR_ANY *")) {
             inetSocketAddress = InetSocketAddress("0.0.0.0", port)
             return inetSocketAddress
         }
-        while (en.hasMoreElements()) {
-            val intf = en.nextElement()
-            Log.d(TAG, intf.displayName + " vs " + interfaceName)
-            if (intf.displayName == interfaceName) {
-                Log.i(TAG, "Found the relevant Interface. Will attempt to fetch IP Address")
-                val enumIpAddr = intf.inetAddresses
-                while (enumIpAddr.hasMoreElements()) {
-                    val inetAddress = enumIpAddr.nextElement()
-                    address = inetAddress.hostAddress
-                    if (!address.isNullOrEmpty() && inetAddress is Inet4Address) {
-                        inetSocketAddress = InetSocketAddress(address, port)
-                        return inetSocketAddress
-                    }
-                }
-            }
-        }
+        inetSocketAddress = InetSocketAddress(getAddrFromIntfCategIndex(interfaceName!!) ?: throw ObjectNotFoundException("No matching IP"), port)
+        return inetSocketAddress
+//        while (en.hasMoreElements()) {
+//            val intf = en.nextElement()
+//            Log.d(TAG, intf.displayName + " vs " + interfaceName)
+//
+//            if (intf.displayName == interfaceName) {
+//                Log.i(TAG, "Found the relevant Interface. Will attempt to fetch IP Address")
+//                val enumIpAddr = intf.inetAddresses
+//                while (enumIpAddr.hasMoreElements()) {
+//                    val inetAddress = enumIpAddr.nextElement()
+//                    address = inetAddress.hostAddress
+//                    if (!address.isNullOrEmpty() && inetAddress is Inet4Address) {
+//                        inetSocketAddress = InetSocketAddress(address, port)
+//                        return inetSocketAddress
+//                    }
+//                }
+//            }
+//        }
         throw ObjectNotFoundException("Could not find IP Address for Interface $interfaceName")
     }
 
